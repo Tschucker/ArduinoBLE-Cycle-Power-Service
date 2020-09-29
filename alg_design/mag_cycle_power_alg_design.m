@@ -119,12 +119,14 @@ title("Filtered Tension Calb Data")
 
 %% Find Cycle Cadence and Power
 data = abs(cat(1,t1(:,3),t2(:,3),t3(:,3),t4(:,3),t5(:,3),t6(:,3),t7(:,3),t8(:,3)));
+%data = abs(awgn(ones(1,1000),1,'measured'));
 length_data = length(data);
 
 curr_min = 100;
 curr_max = 0;
 i_prev = 0;
 point = false;
+static = true;
 crank_count = zeros(1,length_data-1);
 time_stamp = zeros(1,length_data-1);
 
@@ -140,6 +142,8 @@ loggmin = zeros(1,length_data-1);
 mag_samps_per_sec = 16;
 mag_power_calib = 100;
 cap_power = 400;
+decay_factor = 0.5;
+noise_factor = 3;
 
 for i = 3:length_data
     tm2 = data(i-2);
@@ -149,13 +153,13 @@ for i = 3:length_data
     if tm2 > curr_max
         curr_max = tm2;
     else
-        curr_max = curr_max - 0.5;
+        curr_max = curr_max - decay_factor;
     end
     loggmax(i) = curr_max;
     if tm2 < curr_min
         curr_min = tm2;
     else
-        curr_min = curr_min + 0.5;
+        curr_min = curr_min + decay_factor;
     end
     loggmin(i) = curr_min;
     
@@ -165,7 +169,13 @@ for i = 3:length_data
         point = false;
     end
     
-    if (tm1 < (curr_max - curr_min)) && point
+    if((mean(loggmax(i-2:i))-mean(loggmin(i-2:i))) < noise_factor)
+        static = true;
+    else
+        static = false;
+    end
+    
+    if (tm1 < (curr_max - curr_min)) && point && (~static)
         i_curr = i-1;
         i_diff = i_curr - i_prev;
 

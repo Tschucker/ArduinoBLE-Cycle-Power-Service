@@ -30,17 +30,26 @@ float tm2 = 0;
 float tm1 = 0;
 float tm0 = 0;
 
+float min_m2 = 100;
+float max_m2 = 0;
+float min_m1 = 100;
+float max_m1 = 0;
 float curr_min = 100;
 float curr_max = 0;
+bool is_static = true;
+
 double i_prev = 0;
 double i_curr = 0;
 double i_diff = 0;
 bool point = false;
 double counter = 0;
 
+//Configurable values
 float mag_power_calib = 100;
 double mag_samps_per_sec = 16;
 short cap_power = 400;
+float decay_factor = 0.5;
+float noise_factor = 3;
 
 void setup() 
 {
@@ -92,7 +101,7 @@ void loop()
         }
         else
         {
-           curr_max = curr_max - 0.5;
+           curr_max = curr_max - decay_factor;
         }
         
         if(tm2 < curr_min)
@@ -101,7 +110,7 @@ void loop()
         }
         else
         {
-           curr_min = curr_min + 0.5;
+           curr_min = curr_min + decay_factor;
         }
 
         if(((tm1-tm2) < 0) && ((tm1-tm0) < 0))
@@ -113,7 +122,16 @@ void loop()
             point = false;
         }
 
-        if((tm1 < (curr_max - curr_min)) && point)
+        if((((curr_max+max_m1+max_m2)/3) - ((curr_min+min_m1+min_m2)/3)) < noise_factor)
+        {
+          is_static = true;
+        }
+        else
+        {
+          is_static = false;
+        }
+
+        if((tm1 < (curr_max - curr_min)) && point && (~is_static))
         {
           i_curr = counter-1;
           i_diff = i_curr - i_prev;
@@ -148,7 +166,11 @@ void loop()
           CyclePowerSensorLocation.writeValue(slBuffer, 1);
         }
         tm2 = tm1;
-        tm1 = tm0;   
+        tm1 = tm0;
+        max_m2 = max_m1;
+        max_m1 = curr_max;
+        min_m2 = min_m1;
+        min_m1 = curr_min;   
       }
     }
   }
